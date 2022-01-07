@@ -1,0 +1,504 @@
+---
+title: "Workplace_Wellness_Data_Cleaning_Code"
+author: "Mary Hoyt Akiyama Kearns"
+date: "1/5/2022"
+output: html_document
+---
+
+## Running Descriptive Statistics
+
+```{r install packages -- I had to add the CRAN URL to address an error preventing R Markdown from running}
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+install.packages("skimr", repos = "http://cran.us.r-project.org")
+install.packages("janitor", repos = "http://cran.us.r-project.org")
+```
+
+```{r load packages}
+library(tidyverse)
+library(skimr)
+library(janitor)
+library(lubridate)
+library(ggplot2) 
+```
+
+```{r Import **converted** data into R}
+work_wellness <- read.csv("WHA_2017.csv")
+```
+
+```{r Run descriptives}
+head(work_wellness)
+colnames(work_wellness)
+str(work_wellness)
+n_distinct(work_wellness$Id)
+nrow(work_wellness)
+```
+
+There are 2843 unique IDs and 2843 rows of data, so one observation per ID. There are 301 variables, and quite a few variables coded as 96, 97, 98, 99 (missing and miscellaneous)
+
+## Create a Subset of the Data Using Key Variables
+
+```{r Create NEW dataset using ONLY variables of interest, and do a quick check of the columns}
+key_work_wellness <- work_wellness %>% 
+    select("Id", "Industry", "Size", "Region", "CDC_Region", "OC1", "OC3", "HPR8_1", "HPR8_1A", "HPR8_1B", "HPR8_1C", 
+           "CP1", "CP2", "CP3", "WD1_1", "WD1_2", "WD2", "WD3", "WD4", "WD5", "WD7", "WL2", "WL5", "WL6", 
+           "WL7", "WL8", "WL9", "WL11", "WL12", "WL14", "WL15","B1_1", "B1_2", "B1_3", "B1_4", "B1_5", 
+           "B1_6", "B1_7", "B1_8", "B1_9", "B1_10", "B1_11", "B1_12", "KP3_1", "KP3_2", "KP3_3", "KP4", 
+           "KP5A", "KP5C", "KP5E", "KP5F", "KP5G", "KP5H", "HPR8_2A_S", "HPR8_2C_S", "E2") 
+view(key_work_wellness)
+colnames(key_work_wellness)
+n_distinct(key_work_wellness$Id)
+nrow(key_work_wellness)
+```
+
+There are now 2843 unique IDs and 2843 rows of data, for 54 variables.
+
+## Rename columns to make them more user-friendly
+```{r Rename the columns and check the names to make sure they stuck}
+key_work_wellness <- key_work_wellness %>% rename(Num_Employees = "Size",
+                            Your_Dept = "OC1",
+                            Org_Type = "OC3", 
+                            Stress_Manage = "HPR8_1", 
+                            Stress_Manage_Type = "HPR8_1A", 
+                            Stress_Manage_Who_Runs = "HPR8_1B", 
+                            Stress_Manage_Particip = "HPR8_1C",
+                            Health_Skill_Dev= "CP1",
+                            Supportive_Environment= "CP2",
+                            Integrate_Into_Org_Strucutre= "CP3",
+                            Percent_Under_30 = "WD1_1", 
+                            Percent_60_Or_Over = "WD1_2", 
+                            Percent_Female = "WD2", 
+                            Percent_Hourly = "WD3", 
+                            Percent_Night_Shift = "WD4", 
+                            Percent_Remote = "WD5", 
+                            Percent_Turnover = "WD7", 
+                            Bullying_Prevent = "WL2", 
+                            Flexible_Sched = "WL5", 
+                            Telework = "WL6", 
+                            Family_Leave = "WL7", 
+                            Parental_Leave_Paid = "WL8", 
+                            Parental_Leave_Unpaid = "WL9", 
+                            Childcare_Reimburse = "WL11", 
+                            Childcare_OnOrOffsite ="WL12", 
+                            Edlercare_Reimburse = "WL14", 
+                            Eldercare_Onsite = "WL15",
+                            Barrier_Interest = "B1_1", 
+                            Barrier_Trust = "B1_2", 
+                            Barrier_Cost = "B1_3", 
+                            Barrier_Trained_Staff = "B1_4", 
+                            Barrier_Time = "B1_5", 
+                            Barrier_Privacy_Concerns = "B1_6", 
+                            Barrier_Outcomes = "B1_7", 
+                            Barrier_Qualified_Vendors = "B1_8",
+                            Barrier_Sr_Managment_Support = "B1_9", 
+                            Barrier_Mid_Managment_Support = "B1_10", 
+                            Barrier_Legal_Concerns = "B1_11", 
+                            Barrier_Physical_Space = "B1_12", 
+                            Incentive_Attendance = "KP3_1", 
+                            Incentive_Achieve_Health_Std = "KP3_2", 
+                            Incentive_Attendance_Health_Std = "KP3_3", 
+                            Incentive_Effectiveness = "KP4", 
+                            Incentive_Premium_Discounts = "KP5A", 
+                            Incentive_Copay_Diff = "KP5C", 
+                            Incentive_Cash_Rewards = "KP5E", 
+                            Incentive_Flex_Spending = "KP5F", 
+                            Incentive_Paid_Leave = "KP5G", 
+                            Incentive_Gifts_Prizes = "KP5H",
+                            Yoga_Meditation_Room = "HPR8_2A_S",
+                            Culture_Of_Health = "E2",
+                            Train_Mgr_Stress = "HPR8_2C_S")
+
+
+colnames(key_work_wellness)
+head(work_wellness)
+```
+
+## Convert variables from numeric to character, and some from character to numeric
+In checking the new dataframe, I noticed that some columns were in the wrong format, so I ran the following code to convert them. This is my first attempt at coding this in R, so I'm guessing there is a much more parsimonious sytax, but this got the job done. Any feedback you have on streamlining this is greatly appreciated!
+
+```{r}
+# Convert "Industry"and "CDC_Region" from Integer to Character 
+is.character(key_work_wellness$Culture_Of_Health)
+suppressWarnings((key_work_wellness$Culture_Of_Health <- as.numeric(key_work_wellness$Culture_Of_Health)))
+is.numeric(key_work_wellness$Culture_Of_Health)
+
+is.numeric(key_work_wellness$Industry)
+key_work_wellness$Industry <- as.character(key_work_wellness$Industry)
+is.character(key_work_wellness$Industry)
+
+is.numeric(key_work_wellness$CDC_Region)
+key_work_wellness$CDC_Region <- as.character(key_work_wellness$CDC_Region)
+is.character(key_work_wellness$CDC_Region)
+
+#Convert data from Character to Integer
+is.character(key_work_wellness$Percent_Under_30)
+suppressWarnings((key_work_wellness$Percent_Under_30 <- as.numeric(key_work_wellness$Percent_Under_30)))
+is.numeric(key_work_wellness$Percent_Under_30)
+
+is.character(key_work_wellness$Percent_60_Or_Over)
+suppressWarnings(key_work_wellness$Percent_60_Or_Over <- as.numeric(key_work_wellness$Percent_60_Or_Over))
+is.numeric(key_work_wellness$Percent_60_Or_Over)
+
+is.character(key_work_wellness$Percent_Female)
+suppressWarnings((key_work_wellness$Percent_Female <- as.numeric(key_work_wellness$Percent_Female)))
+is.numeric(key_work_wellness$Percent_Female)
+
+is.character(key_work_wellness$Percent_Hourly)
+suppressWarnings((key_work_wellness$Percent_Hourly <- as.numeric(key_work_wellness$Percent_Hourly)))
+is.numeric(key_work_wellness$Percent_Hourly)
+
+is.character(key_work_wellness$Percent_Night_Shift)
+suppressWarnings(key_work_wellness$Percent_Night_Shift <- as.numeric(key_work_wellness$Percent_Night_Shift))
+is.numeric(key_work_wellness$Percent_Night_Shift)
+
+is.character(key_work_wellness$Percent_Remote)
+suppressWarnings(key_work_wellness$Percent_Remote <- as.numeric(key_work_wellness$Percent_Remote))
+is.numeric(key_work_wellness$Percent_Remote)
+
+is.character(key_work_wellness$Percent_Turnover)
+suppressWarnings(key_work_wellness$Percent_Turnover <- as.numeric(key_work_wellness$Percent_Turnover))
+is.numeric(key_work_wellness$Percent_Turnover)
+
+is.character(key_work_wellness$Barrier_Interest)
+suppressWarnings(key_work_wellness$Barrier_Interest <- as.numeric(key_work_wellness$Barrier_Interest))
+is.numeric(key_work_wellness$Barrier_Interest)
+
+is.character(key_work_wellness$Barrier_Trust)
+suppressWarnings(key_work_wellness$Barrier_Trust <- as.numeric(key_work_wellness$Barrier_Trust))
+is.numeric(key_work_wellness$Barrier_Trust)
+
+is.character(key_work_wellness$Barrier_Cost)
+suppressWarnings(key_work_wellness$Barrier_Cost <- as.numeric(key_work_wellness$Barrier_Cost))
+is.numeric(key_work_wellness$Barrier_Cost)
+
+is.character(key_work_wellness$Barrier_Trained_Staff)
+suppressWarnings(key_work_wellness$Barrier_Trained_Staff <- as.numeric(key_work_wellness$Barrier_Trained_Staff))
+is.numeric(key_work_wellness$Barrier_Trained_Staff)
+
+is.character(key_work_wellness$Barrier_Time)
+suppressWarnings(key_work_wellness$Barrier_Time <- as.numeric(key_work_wellness$Barrier_Time))
+is.numeric(key_work_wellness$Barrier_Time)
+
+is.character(key_work_wellness$Barrier_Privacy_Concerns)
+suppressWarnings(key_work_wellness$Barrier_Privacy_Concerns <- as.numeric(key_work_wellness$Barrier_Privacy_Concerns))
+is.numeric(key_work_wellness$Barrier_Privacy_Concerns)
+
+is.character(key_work_wellness$Barrier_Outcomes)
+suppressWarnings(key_work_wellness$Barrier_Outcomes <- as.numeric(key_work_wellness$Barrier_Outcomes))
+is.numeric(key_work_wellness$Barrier_Outcomes)
+
+is.character(key_work_wellness$Barrier_Qualified_Vendors)
+suppressWarnings(key_work_wellness$Barrier_Qualified_Vendors <- as.numeric(key_work_wellness$Barrier_Qualified_Vendors))
+is.numeric(key_work_wellness$Barrier_Qualified_Vendors)
+
+is.character(key_work_wellness$Barrier_Sr_Managment_Support)
+suppressWarnings(key_work_wellness$Barrier_Sr_Managment_Support <- as.numeric(key_work_wellness$Barrier_Sr_Managment_Support))
+is.numeric(key_work_wellness$Barrier_Sr_Managment_Support)
+
+is.character(key_work_wellness$Barrier_Mid_Managment_Support)
+suppressWarnings(key_work_wellness$Barrier_Mid_Managment_Support <- as.numeric(key_work_wellness$Barrier_Mid_Managment_Support))
+is.numeric(key_work_wellness$Barrier_Mid_Managment_Support)
+
+is.character(key_work_wellness$Barrier_Legal_Concerns)
+suppressWarnings(key_work_wellness$Barrier_Legal_Concerns <- as.numeric(key_work_wellness$Barrier_Legal_Concerns))
+is.numeric(key_work_wellness$Barrier_Legal_Concerns)
+
+is.character(key_work_wellness$Barrier_Physical_Space)
+suppressWarnings(key_work_wellness$Barrier_Physical_Space <- as.numeric(key_work_wellness$Barrier_Physical_Space))
+is.numeric(key_work_wellness$Barrier_Physical_Space)
+
+is.character(key_work_wellness$Incentive_Effectiveness)
+suppressWarnings(key_work_wellness$Incentive_Effectiveness <- as.numeric(key_work_wellness$Incentive_Effectiveness))
+is.numeric(key_work_wellness$Incentive_Effectiveness)
+
+as_tibble(key_work_wellness)
+
+summary(key_work_wellness)
+
+```
+
+## Assign Value Labels
+Next, I assigned labels to the values of the character variables. I know there is different nomenclature in R, but my native statistical coding language is SPSS, so I'm defaulting to that. Again, if there is a more parsimonious way to code this, please let me know!
+
+```{r}
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Your_Dept = recode(Your_Dept
+                              ,"1" = "Human Resources and/or Benefits"
+                              ,"2" = "Health Promotion/Fitness/Wellness"
+                              ,"3" = "Safety"
+                              ,"4" = "Medical"
+                              ,"5" = "PR/Marketing"
+                              ,"6" = "Finance"
+                              ,"7" = "Other"))
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Region = recode(Region
+                              ,"1" = "Northeast"
+                              ,"2" = "Southeast"
+                              ,"3" = "Midwest"
+                              ,"4" = "Mountain"
+                              ,"5" = "West"))
+
+key_work_wellness <-  key_work_wellness %>% 
+mutate(Industry = recode(Industry
+                        ,"1" = "Agriculture, Forestry, Fishing, and Hunting; Mining; Utilities; Construction; Manufacturing"
+                        ,"2" = "Wholesale Trade; Retail Trade; Transportation and Warehousing"
+                        ,"3" = "Arts, Entertainment, and Recreation; Accommodation and Food Services; Other Services"
+                        ,"4" = "Information; Finance' Insurance; Real Estate; Professional, Scientific, and Technical Services; Waste Management"
+                        ,"5" = "Educational Services; Health Care and Social Assistance [excluding hospitals]"
+                        ,"6" = "Public Administration"
+                        ,"7" = "Hospital"))
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Num_Employees = recode(Num_Employees
+                         ,"1" = "10 to 24"
+                         ,"2" = "25 to 49"
+                         ,"3" = "50 to 99"
+                         ,"4" = "100 to 249"
+                         ,"5" = "250 to 499"
+                         ,"6" = "500 to 749"
+                         ,"7" = "750 to 999"
+                         ,"8" = "1000 or more")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(CDC_Region = recode(CDC_Region
+                                  ,"1" = "CT, ME, MA, NH, RI, VT"
+                                  ,"2" = "NJ, NY"
+                                  ,"3" = "DE, DC, MD, PA, VA, WV"
+                                  ,"4" = "AL, FL, GA, KY, MI, NC, SC, TN"
+                                  ,"5" = "IL, IN, MI, MN, OH, WI"
+                                  ,"6" = "AK, LA, NM, OK, TX"
+                                  ,"7" = "IA, KS, MS, NB"
+                                  ,"8" = "CO, MT, ND, SD, UT, WY"
+                                  ,"9" = "AZ, CA, HI, NV"
+                                  ,"10" = "AK, ID, OR, WA")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Org_Type = recode(Org_Type
+                               ,"1" = "For profit, public"
+                               ,"2" = "For profit, private"
+                               ,"3" = "Non-profit"
+                               ,"4" = "State or local government"
+                               ,"5" = "Federal government"
+                               ,"6" = "Other")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Stress_Manage = recode(Stress_Manage
+                             ,"1" = "Yes"
+                             ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Stress_Manage_Type = recode(Stress_Manage_Type
+                                  ,"1" = "Awareness or informational"
+                                  ,"2" = "Skill-building"
+                                  ,"3" = "Both informational and skill-building")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Stress_Manage_Who_Runs = recode(Stress_Manage_Who_Runs
+                                       ,"1" = "Offered mostly by employer"
+                                       ,"2" = "Offered mostly by health plan"
+                                       ,"3" = "Offered mostly by outsourced vendor"
+                                       ,"4" = "Offered by employer, health plan and/or vendor")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Stress_Manage_Particip = recode(Stress_Manage_Particip
+                                           ,"1" = "1-25%"
+                                           ,"2" = "26-50%"
+                                           ,"3" = "51-75%"
+                                           ,"4" = "More than 75%")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Effectiveness = recode(Incentive_Effectiveness
+                                           ,"1" = "Not at all effective"
+                                           ,"2" = "Somewhat effective"
+                                           ,"3" = "Effective"
+                                           ,"4" = "Extremely effective"))
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Health_Skill_Dev = recode(Health_Skill_Dev
+                                     ,"1" = "Yes"
+                                     ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Supportive_Environment = recode(Supportive_Environment
+                                     ,"1" = "Yes"
+                                     ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Integrate_Into_Org_Strucutre = recode(Integrate_Into_Org_Strucutre
+                                     ,"1" = "Yes"
+                                     ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Bullying_Prevent = recode(Bullying_Prevent
+                                  ,"1" = "Yes"
+                                  ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Flexible_Sched = recode(Flexible_Sched
+                                     ,"1" = "Yes"
+                                     ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Telework = recode(Telework
+                                   ,"1" = "Yes"
+                                   ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Family_Leave = recode(Family_Leave
+                             ,"1" = "Yes"
+                             ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Parental_Leave_Paid = recode(Parental_Leave_Paid
+                                 ,"1" = "Yes"
+                                 ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Parental_Leave_Unpaid = recode(Parental_Leave_Unpaid
+                                        ,"1" = "Yes"
+                                        ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Childcare_Reimburse = recode(Childcare_Reimburse
+                                          ,"1" = "Yes"
+                                          ,"2" = "No")) 
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Childcare_OnOrOffsite = recode(Childcare_OnOrOffsite
+                                        ,"1" = "Yes"
+                                        ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Edlercare_Reimburse = recode(Edlercare_Reimburse
+                                          ,"1" = "Yes"
+                                          ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Eldercare_Onsite = recode(Eldercare_Onsite
+                                        ,"1" = "Yes"
+                                        ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Attendance = recode(Incentive_Attendance
+                                     ,"1" = "Yes"
+                                     ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Achieve_Health_Std = recode(Incentive_Achieve_Health_Std
+                                         ,"1" = "Yes"
+                                         ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Attendance_Health_Std = recode(Incentive_Attendance_Health_Std
+                                                 ,"1" = "Yes"
+                                                 ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Premium_Discounts = recode(Incentive_Premium_Discounts
+                                                    ,"1" = "Yes"
+                                                    ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Copay_Diff = recode(Incentive_Copay_Diff
+                                                ,"1" = "Yes"
+                                                ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Cash_Rewards = recode(Incentive_Cash_Rewards
+                                         ,"1" = "Yes"
+                                         ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Flex_Spending = recode(Incentive_Flex_Spending
+                                           ,"1" = "Yes"
+                                           ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Paid_Leave = recode(Incentive_Paid_Leave
+                                            ,"1" = "Yes"
+                                            ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Incentive_Gifts_Prizes = recode(Incentive_Gifts_Prizes
+                                         ,"1" = "Yes"
+                                         ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Yoga_Meditation_Room = recode(Yoga_Meditation_Room
+                                           ,"1" = "Yes"
+                                           ,"2" = "No")) 
+
+key_work_wellness <-  key_work_wellness %>% 
+    mutate(Train_Mgr_Stress = recode(Train_Mgr_Stress
+                                         ,"1" = "Yes"
+                                         ,"2" = "No")) 
+
+head(key_work_wellness)
+```
+
+## Run tables for each column to make sure everything is looking good and lining up with the Codebook tabs
+Again, please let me know if there is a more parsimonious way to do this!
+
+```{r Run tables for each variable}
+table(key_work_wellness$Industry)
+table(key_work_wellness$Num_Employees)
+table(key_work_wellness$CDC_Region)
+table(key_work_wellness$Org_Type)
+table(key_work_wellness$Yoga_Meditation_Room)
+table(key_work_wellness$Train_Mgr_Stress)
+table(key_work_wellness$Culture_Of_Health)
+table(key_work_wellness$Stress_Manage)
+table(key_work_wellness$Stress_Manage_Type)
+table(key_work_wellness$Stress_Manage_Who_Runs)
+table(key_work_wellness$Stress_Manage_Particip)
+table(key_work_wellness$Percent_Under_30)
+table(key_work_wellness$Percent_60_Or_Over)
+table(key_work_wellness$Percent_Female)
+table(key_work_wellness$Percent_Hourly)
+table(key_work_wellness$Percent_Night_Shift)
+table(key_work_wellness$Percent_Remote)
+table(key_work_wellness$Percent_Turnover)
+table(key_work_wellness$Bullying_Prevent)
+table(key_work_wellness$Flexible_Sched)
+table(key_work_wellness$Telework)
+table(key_work_wellness$Family_Leave)
+table(key_work_wellness$Parental_Leave_Paid)
+table(key_work_wellness$Parental_Leave_Unpaid)
+table(key_work_wellness$Childcare_Reimburse)
+table(key_work_wellness$Childcare_OnOrOffsite)
+table(key_work_wellness$Edlercare_Reimburse)
+table(key_work_wellness$Eldercare_Onsite)
+table(key_work_wellness$Barrier_Interest)
+table(key_work_wellness$Barrier_Trust)
+table(key_work_wellness$Barrier_Cost)
+table(key_work_wellness$Barrier_Trained_Staff)
+table(key_work_wellness$Barrier_Time)
+table(key_work_wellness$Barrier_Privacy_Concerns)
+table(key_work_wellness$Barrier_Outcomes)
+table(key_work_wellness$Barrier_Qualified_Vendors)
+table(key_work_wellness$Barrier_Sr_Managment_Support)
+table(key_work_wellness$Barrier_Mid_Managment_Support)
+table(key_work_wellness$Barrier_Legal_Concerns)
+table(key_work_wellness$Barrier_Physical_Space)
+table(key_work_wellness$Incentive_Attendance)
+table(key_work_wellness$Incentive_Achieve_Health_Std)
+table(key_work_wellness$Incentive_Attendance_Health_Std)
+table(key_work_wellness$Incentive_Effectiveness)
+table(key_work_wellness$Incentive_Premium_Discounts)
+table(key_work_wellness$Incentive_Copay_Diff)
+table(key_work_wellness$Incentive_Cash_Rewards)
+table(key_work_wellness$Incentive_Flex_Spending)
+table(key_work_wellness$Incentive_Paid_Leave)
+table(key_work_wellness$Incentive_Gifts_Prizes)
+```
+
+## View of summary of the dataframe and check for missing values
+```{r create a compact summary of the dataframe}
+key_work_wellness %>%
+  skim_without_charts()
+```
+
+## Save files as a CSV
+
+```{r Save a copy of the data file to use in Google Sheets and Tableau}
+write.csv(key_work_wellness, file = "key_work_wellness.csv")
+```
