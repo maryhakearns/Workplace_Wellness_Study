@@ -1,5 +1,5 @@
 # Google Analytics Capstone Project: Workplace Wellness Analysis
-This repository contains code written in December 2021, which was used to analyze the CDC Workplace Health in America Survey, 2017, published December 2018. Link to the original data, codebook and survey instrument are included below.
+This repository contains code written in January 2022, which was used to analyze the CDC Workplace Health in America Survey, 2017, published December 2018. Link to the original data, codebook and survey instrument are included below.
 
 I conducted this analysis as part of the requirements for the Google Data Analytics Certifcate.
 
