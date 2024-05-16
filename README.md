@@ -23,7 +23,7 @@ This analysis utilizes data from the [*CDC Workplace Health in America Survey, 2
 
 ## Data Cleaning
 
-I imported the data, which was in an ASCII delimited format, into Google Sheets and converted it to a comma delimited format. I then ran summary statistics to make sure the datas were in the ranges they were supposed to be, comparing them again the data provided by the Centers for Disease Control and Prevention (CDC) in their Workplace Health Promotion [Codebook](https://www.cdc.gov/workplacehealthpromotion/data-surveillance/docs/2017-WHA-Datafile-Codebook-508.pdf). 
+I imported the data, which was in an ASCII delimited format, into Google Sheets, then converted it to a comma delimited format. I then ran summary statistics to make sure the data were in the ranges they were supposed to be, comparing them against the data provided by the Centers for Disease Control and Prevention (CDC) in their Workplace Health Promotion [Codebook](https://www.cdc.gov/workplacehealthpromotion/data-surveillance/docs/2017-WHA-Datafile-Codebook-508.pdf). 
 
 The data is in a format that was designed for ease of use for those using SAS for data analysis. Therefore, I had a lot of formatting to do to get it to a place where it was easier to interact with. I replaced the miscellaneous values coded as 95, 96, 97, 98, and 99 to missing values, since they legitimately should be ignored. I then converted the Percentage Question integer variables (e.g., "What percentage of employees work remotely?") into percentages. Here is [the cleaned data set](https://github.com/maryhakearns/Workplace_Wellness_Study/blob/fc1930afc9433eb7cced633b916f654ddaccac54/WHA_2017.csv).
 
